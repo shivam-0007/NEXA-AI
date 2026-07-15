@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useEffect } from "react";
 import runChat from "../config/Gemini";
 
 export const Context = createContext();
@@ -6,20 +6,49 @@ export const Context = createContext();
 const ContextProvider = (props) => {
 	const [input, setInput] = useState("");
 	const [recentPrompt, setRecentPrompt] = useState("");
-	const [prevPrompts, setPrevPrompts] = useState([]);
+	const [prevPrompts, setPrevPrompts] = useState(() => {
+		try {
+			const saved = localStorage.getItem("nexa_prev_prompts");
+			return saved ? JSON.parse(saved) : [];
+		} catch {
+			return [];
+		}
+	});
 	const [showResults, setShowResults] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [resultData, setResultData] = useState("");
+	const [activeModal, setActiveModal] = useState(null); // 'history' | 'settings' | 'help' | null
+
+	useEffect(() => {
+		localStorage.setItem("nexa_prev_prompts", JSON.stringify(prevPrompts));
+	}, [prevPrompts]);
 
 	const delayPara = (index, nextWord) => {
 		setTimeout(function () {
 			setResultData((prev) => prev + nextWord);
 		}, 10 * index);
 	};
-    const newChat = () =>{
-        setLoading(false);
-        setShowResults(false)
-    }
+
+	const newChat = () => {
+		setLoading(false);
+		setShowResults(false);
+		setResultData("");
+		setInput("");
+	};
+
+	const addToHistory = (prompt) => {
+		if (!prompt || !prompt.trim()) return;
+		setPrevPrompts((prev) => {
+			if (prev[prev.length - 1] === prompt) return prev;
+			const updated = [...prev, prompt];
+			return updated.slice(-50);
+		});
+	};
+
+	const clearHistory = () => {
+		setPrevPrompts([]);
+		localStorage.removeItem("nexa_prev_prompts");
+	};
 
 	const onSent = async (prompt) => {
 		setResultData("");
@@ -27,14 +56,10 @@ const ContextProvider = (props) => {
 		setShowResults(true);
 		let response;
 		try {
-			if (prompt !== undefined) {
-				response = await runChat(prompt);
-				setRecentPrompt(prompt);
-			} else {
-				setPrevPrompts((prev) => [...prev, input]);
-				setRecentPrompt(input);
-				response = await runChat(input);
-			}
+			const finalPrompt = prompt !== undefined ? prompt : input;
+			setRecentPrompt(finalPrompt);
+			addToHistory(finalPrompt);
+			response = await runChat(finalPrompt);
 
 			let responseArray = response.split("**");
 			let newResponse = "";
@@ -53,7 +78,9 @@ const ContextProvider = (props) => {
 			}
 		} catch (error) {
 			console.error("Error while running chat:", error);
-			setResultData("An error occurred. Check the browser console and ensure your API key is configured.");
+			setResultData(
+				"An error occurred. Check the browser console and ensure your API key is configured."
+			);
 		} finally {
 			setLoading(false);
 			setInput("");
@@ -72,6 +99,9 @@ const ContextProvider = (props) => {
 		loading,
 		resultData,
 		newChat,
+		clearHistory,
+		activeModal,
+		setActiveModal,
 	};
 
 	return (

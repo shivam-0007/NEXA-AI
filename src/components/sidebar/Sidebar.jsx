@@ -2,14 +2,22 @@ import "./sidebar.css";
 import { assets } from "../../assets/assets";
 import { useContext, useState } from "react";
 import { Context } from "../../context/Context";
+
 const Sidebar = () => {
 	const [extended, setExtended] = useState(false);
-	const { onSent, prevPrompts, setRecentPrompt, newChat } = useContext(Context);
+	const {
+		onSent,
+		prevPrompts,
+		setRecentPrompt,
+		newChat,
+		setActiveModal,
+	} = useContext(Context);
 
 	const loadPreviousPrompt = async (prompt) => {
 		setRecentPrompt(prompt);
 		await onSent(prompt);
 	};
+
 	return (
 		<div className="sidebar">
 			<div className="top">
@@ -22,9 +30,13 @@ const Sidebar = () => {
 					}}
 				/>
 				<div className="new-chat">
-					<img src={assets.plus_icon} alt="" onClick={()=>{
-                        newChat()
-                    }} />
+					<img
+						src={assets.plus_icon}
+						alt=""
+						onClick={() => {
+							newChat();
+						}}
+					/>
 					{extended ? <p>New Chat</p> : null}
 				</div>
 				{extended ? (
@@ -32,9 +44,13 @@ const Sidebar = () => {
 						<p className="recent-title">Recent</p>
 						{prevPrompts.map((item, index) => {
 							return (
-								<div onClick={()=>{
-                                    loadPreviousPrompt(item)
-                                }} className="recent-entry">
+								<div
+									key={index}
+									onClick={() => {
+										loadPreviousPrompt(item);
+									}}
+									className="recent-entry"
+								>
 									<img src={assets.message_icon} alt="" />
 									<p>{item.slice(0, 18)}...</p>
 								</div>
@@ -44,15 +60,24 @@ const Sidebar = () => {
 				) : null}
 			</div>
 			<div className="bottom">
-				<div className="bottom-item recent-entry">
+				<div
+					className="bottom-item recent-entry"
+					onClick={() => setActiveModal("help")}
+				>
 					<img src={assets.question_icon} alt="" />
 					{extended ? <p>Help desk</p> : null}
 				</div>
-				<div className="bottom-item recent-entry">
+				<div
+					className="bottom-item recent-entry"
+					onClick={() => setActiveModal("history")}
+				>
 					<img src={assets.history_icon} alt="" />
 					{extended ? <p>History</p> : null}
 				</div>
-				<div className="bottom-item recent-entry">
+				<div
+					className="bottom-item recent-entry"
+					onClick={() => setActiveModal("settings")}
+				>
 					<img src={assets.setting_icon} alt="" />
 					{extended ? <p>Settings</p> : null}
 				</div>
